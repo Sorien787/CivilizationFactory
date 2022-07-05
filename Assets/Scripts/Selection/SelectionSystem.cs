@@ -2,31 +2,30 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SelectionSystem : IGameSubsystem<ISelectionListener>
+[CreateAssetMenu(menuName = "Selection Tool")]
+public class SelectionSystem : ITool
 {
 
-	private static NullSelectable m_NullSelectable = new NullSelectable();
+	private static readonly NullSelectable m_NullSelectable = new();
 
-	private ISelectableInterface m_CurrentSelectableObject = null;
-	private ISelectableInterface m_CurrentHoveredObject = null;
+	private ISelectableInterface m_CurrentSelectableObject = m_NullSelectable;
+	private ISelectableInterface m_CurrentHoveredObject = m_NullSelectable;
 	public override void GameFinish()
 	{
 
 	}
 
-	public override void GameTick()
+	public override void OnToolTick()
 	{
 		Camera camera = Camera.main;
 		Ray ray = camera.ScreenPointToRay(Input.mousePosition);
 		Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, 10, QueryTriggerInteraction.Ignore);
 		GameObject hoveredObject = hit.transform.gameObject;
 
-		ISelectableInterface selectable = null;
-		if (!hoveredObject || !hoveredObject.GetComponent<ISelectable>())
-			selectable = m_NullSelectable;
-		else
+		ISelectableInterface selectable = m_NullSelectable;
+		if (hoveredObject && hoveredObject.GetComponent<ISelectable>())
 			selectable = hoveredObject.GetComponent<ISelectable>();
-		
+
 		if (selectable != m_CurrentHoveredObject)
 		{
 			m_CurrentHoveredObject.OnHovered(null);
@@ -40,6 +39,7 @@ public class SelectionSystem : IGameSubsystem<ISelectionListener>
 
 	public override void GameStart()
 	{
+		m_CurrentHoveredObject = m_NullSelectable;
 		m_CurrentSelectableObject = m_NullSelectable;
 	}
 
@@ -53,7 +53,7 @@ public class SelectionSystem : IGameSubsystem<ISelectionListener>
 		m_CurrentSelectableObject.OnSelect();
 	}
 
-	public ISelectable GetCurrentSelectedObject() 
+	public ISelectableInterface GetCurrentSelectedObject() 
 	{
 		return m_CurrentSelectableObject;
 	}
@@ -63,6 +63,8 @@ public class NullSelectable : ISelectableInterface
 {
 	public void OnDeselect(){}
 	public void OnHovered(in GameObject otherObject){}
+
+	public GameObject GetGameObject() { return null; }
 	public void OnSelect(){}
 	public void OnUnhovered(){}
 }

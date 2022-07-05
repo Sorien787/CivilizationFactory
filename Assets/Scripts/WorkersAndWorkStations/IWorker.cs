@@ -24,13 +24,13 @@ public class IWorker : MonoBehaviour, ISelectableListener
 
 	private void Awake()
 	{
-		m_WorkerPool.OnWorkerAdded(this);
+		m_WorkerPool.AddWorkersToPool(this, m_WorkerType);
 		m_SelectableComponent.AddListener(this);
 	}
 
 	private void OnDestroy()
 	{
-		m_WorkerPool.OnWorkerRemoved(this);
+		m_WorkerPool.RemoveWorkersFromPool(this);
 	}
 
 	public void OnSelect()

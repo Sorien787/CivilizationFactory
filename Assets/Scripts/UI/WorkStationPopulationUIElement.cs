@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using System;
+using TMPro;
 
-public class WorkStationPopulationUIElement : IListenerMonoBehaviour<WorkStationPopulationUIListener>
+public class WorkStationPopulationUIElement : IListenerMonoBehaviour<IWorkStationPopulationUIListener>
 {
     // Start is called before the first frame update
     private WorkerType m_WorkerType = null;
@@ -17,7 +18,7 @@ public class WorkStationPopulationUIElement : IListenerMonoBehaviour<WorkStation
 
     [SerializeField] private Button m_RemoveAllButton = null;
 
-    [SerializeField] private Text m_WorkerInformationText = null;
+    [SerializeField] private TextMeshProUGUI m_WorkerInformationText = null;
 
     public void Setup(in WorkerType workerType) 
     {
@@ -37,31 +38,31 @@ public class WorkStationPopulationUIElement : IListenerMonoBehaviour<WorkStation
     {
         return m_WorkerType;
     }
-    void OnAddSingle() 
+    public void OnAddSingle() 
     {
-        ForEachListener((WorkStationPopulationUIListener listener) => listener.OnAddSinglePressed());
+        ForEachListener((IWorkStationPopulationUIListener listener) => listener.OnAddSinglePressed(m_WorkerType));
     }
 
-    void OnAddMax() 
+    public void OnAddMax() 
     {
-        ForEachListener((WorkStationPopulationUIListener listener) => listener.OnAddMaxPressed());
+        ForEachListener((IWorkStationPopulationUIListener listener) => listener.OnAddMaxPressed(m_WorkerType));
     }
 
-    void OnRemoveSingle() 
+    public void OnRemoveSingle() 
     {
-        ForEachListener((WorkStationPopulationUIListener listener) => listener.OnRemoveSinglePressed());
+        ForEachListener((IWorkStationPopulationUIListener listener) => listener.OnRemoveSinglePressed(m_WorkerType));
     }
 
-    void OnRemoveMax() 
+    public void OnRemoveMax() 
     {
-        ForEachListener((WorkStationPopulationUIListener listener) => listener.OnRemoveMaxPressed());
+        ForEachListener((IWorkStationPopulationUIListener listener) => listener.OnRemoveMaxPressed(m_WorkerType));
     }
 }
 
-public interface WorkStationPopulationUIListener : IListenerInterface 
+public interface IWorkStationPopulationUIListener : IListenerInterface 
 {
-    void OnAddSinglePressed();
-    void OnAddMaxPressed();
-    void OnRemoveSinglePressed();
-    void OnRemoveMaxPressed();
+    void OnAddSinglePressed(WorkerType workerType);
+    void OnAddMaxPressed(WorkerType workerType);
+    void OnRemoveSinglePressed(WorkerType workerType);
+    void OnRemoveMaxPressed(WorkerType workerType);
 }

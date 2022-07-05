@@ -4,11 +4,8 @@ using UnityEngine;
 
 public class IWorkStation : IListenerMonoBehaviour<IWorkStationListener>, ISelectableListener, IWorkerListener, IWorkerPoolListener
 {
-	[SerializeField] private List<WorkerType> m_AllowedWorkerTypes = new List<WorkerType>();
 
 	[SerializeField] private WorkerPool m_WorkerPool = null;
-
-	[SerializeField] private int m_MaxWorkerSlots = 0;
 
 	[SerializeField] private ISelectable m_SelectableComponent = null;
 
@@ -20,11 +17,18 @@ public class IWorkStation : IListenerMonoBehaviour<IWorkStationListener>, ISelec
 
 	private int m_CurrentWorkerSlots = 0;
 
-	private Dictionary<WorkerType, List<IWorker>> m_CurrentWorkers = new Dictionary<WorkerType, List<IWorker>>();
+	private WorkStationType m_WorkStationType = null;
+
+	private WorkerContainer m_WorkerContainer = new WorkerContainer();
 
 	private void Awake()
 	{
 		m_SelectableComponent.AddListener(this);	
+	}
+
+	public void SetMachineType(WorkStationType stationType) 
+	{
+		m_WorkStationType = stationType;
 	}
 
 	/// <summary>
@@ -32,25 +36,26 @@ public class IWorkStation : IListenerMonoBehaviour<IWorkStationListener>, ISelec
 	/// </summary>
 	public void OnSelect()
 	{
-		m_WorkerPool.AddListener(this);
+		m_WorkerPool.m_Listeners.AddListener(this);
 		m_UIPanelSystem.DisplayUIPanelByIdentifier(m_WorkstationUIPanel);
 	}
 
 	public void OnDeselect()
 	{
-		m_WorkerPool.RemoveListener(this);
+		m_WorkerPool.m_Listeners.RemoveListener(this);
 		m_UIPanelSystem.HideUIPanelByIdentifier(m_WorkstationUIPanel);
 	}
 
 	/// <summary>
 	/// IWorkerPoolListener function
 	/// </summary>
-	public void OnWorkerAdded(WorkerType workerType)
+	/// 
+	public void OnWorkersRemoved(WorkerType workerType)
 	{
 		OnAvailableWorkersChanged(workerType);
 	}
 
-	public void OnWorkerRemoved(WorkerType workerType)
+	public void OnWorkersAdded(WorkerType workerType)
 	{
 		OnAvailableWorkersChanged(workerType);
 	}
@@ -67,27 +72,32 @@ public class IWorkStation : IListenerMonoBehaviour<IWorkStationListener>, ISelec
 
 	public List<WorkerType> GetWorkerTypesToDisplay() 
 	{
-		return m_AllowedWorkerTypes;
-	}
-
-	public float GetCurrentEfficiency() 
-	{
-		return m_CurrentMachineEfficiency;
+		return m_WorkStationType.GetAllowedWorkerTypes;
 	}
 
 	public int GetNumWorkersOfType(WorkerType workerType) 
 	{
-		return m_CurrentWorkers[workerType].Count;
+		return m_WorkerContainer.GetNumWorkersOfType(workerType);
 	}
 
 	public int GetMaxNumWorkersOfType(WorkerType workerType) 
 	{
-		return m_MaxWorkerSlots / workerType.GetWorkerSize();
+		return m_WorkStationType.GetMaxSlots / workerType.GetWorkerSize();
 	}
 
 	public int GetTotalNumSlots()
 	{
-		return m_MaxWorkerSlots;
+		return m_WorkStationType.GetMaxSlots;
+	}
+
+	public string GetDescription() 
+	{
+		return m_WorkStationType.GetDescriptor;
+	}
+
+	public string GetName() 
+	{
+		return m_WorkStationType.GetName;
 	}
 
 	public int GetNumFilledSlots() 
@@ -103,7 +113,7 @@ public class IWorkStation : IListenerMonoBehaviour<IWorkStationListener>, ISelec
 
 	public bool CanRemoveMoreWorkersOfType(WorkerType workerType) 
 	{
-		return m_CurrentWorkers.ContainsKey(workerType);
+		return m_WorkerContainer.GetNumWorkersOfType(workerType) > 0;
 	}
 
 	public float GetCurrentMachineEfficiency() 
@@ -114,9 +124,9 @@ public class IWorkStation : IListenerMonoBehaviour<IWorkStationListener>, ISelec
 	// called by UI to change workers
 	private int GetNumPossibleWorkersToAdd(in WorkerType workerType) 
 	{
-		int numSlotsAvailable = m_MaxWorkerSlots - m_CurrentWorkerSlots;
+		int numSlotsAvailable = m_WorkStationType.GetMaxSlots - m_CurrentWorkerSlots;
 		int numWorkersCanAdd = numSlotsAvailable / workerType.GetWorkerSize();
-		int numWorkersAvailable = m_WorkerPool.GetNumWorkersAvailable(workerType);
+		int numWorkersAvailable = m_WorkerPool.GetNumWorkersOfType(workerType);
 		return Mathf.Min(numWorkersAvailable, numWorkersCanAdd);
 	}
 
@@ -125,7 +135,7 @@ public class IWorkStation : IListenerMonoBehaviour<IWorkStationListener>, ISelec
 	{
 		// this will decrease the number of available workers
 		// so will refresh UI by listener
-		List<IWorker> workers = m_WorkerPool.OnRequestWorkers(1, workerType);
+		List<IWorker> workers = m_WorkerPool.RemoveWorkersFromPool(workerType, 1);
 		AddWorkers(workerType, workers);
 	}
 
@@ -135,19 +145,22 @@ public class IWorkStation : IListenerMonoBehaviour<IWorkStationListener>, ISelec
 		
 		// this will decrease the number of available workers
 		// so will refresh UI by listener
-		List<IWorker> workers = m_WorkerPool.OnRequestWorkers(numWorkersToAdd, workerType);
+		List<IWorker> workers = m_WorkerPool.RemoveWorkersFromPool(workerType, numWorkersToAdd);
 
 		AddWorkers(workerType, workers);
 	}
 
-	public void AddWorkers(in WorkerType workerType, in List<IWorker> workersToAdd) 
+	private void AddWorkers(in WorkerType workerType, in List<IWorker> workersToAdd) 
 	{
-		m_CurrentWorkers[workerType].AddRange(workersToAdd);
+		m_WorkerContainer.AddWorkersOfType(workerType, workersToAdd);
+
 		m_CurrentWorkerSlots += workersToAdd.Count * workerType.GetWorkerSize();
+
 		foreach(IWorker worker in workersToAdd) 
 		{
 			worker.SetWorkStation(this);
 		}
+
 		OnMachineEfficiencyChanged();
 	}
 
@@ -158,27 +171,19 @@ public class IWorkStation : IListenerMonoBehaviour<IWorkStationListener>, ISelec
 
 	public void OnWorkersMinimized(in WorkerType workerType) 
 	{
-		m_CurrentWorkerSlots -= m_CurrentWorkers[workerType].Count * workerType.GetWorkerSize();
-		RemoveWorkers(workerType, m_CurrentWorkers[workerType].Count);
+		m_CurrentWorkerSlots -= m_WorkerContainer.GetNumWorkersOfType(workerType) * workerType.GetWorkerSize();
+		RemoveWorkers(workerType, m_WorkerContainer.GetNumWorkersOfType(workerType));
 	}
 
-	public void RemoveWorkers(in WorkerType workerType, in int numWorkersToRemove) 
+	private void RemoveWorkers(in WorkerType workerType, in int numWorkersToRemove) 
 	{
-		List<IWorker> currentWorkersOfType = m_CurrentWorkers[workerType];
-		currentWorkersOfType.RemoveRange(currentWorkersOfType.Count - numWorkersToRemove, currentWorkersOfType.Count - 1);
-		List<IWorker> workersReleased = new List<IWorker>();
+		List<IWorker> workersRemoved = m_WorkerContainer.RequestWorkersByType(workerType, numWorkersToRemove);
 
-		int startWorkerIndex = currentWorkersOfType.Count - numWorkersToRemove;
-		for (int workerIndex = 0; workerIndex < numWorkersToRemove; workerIndex++) 
-		{
-			workersReleased.Add(currentWorkersOfType[workerIndex + startWorkerIndex]);
-		}
-		currentWorkersOfType.RemoveRange(startWorkerIndex, currentWorkersOfType.Count - 1);
 		// this will increase the number of available workers
 		// so will refresh UI by listener
-		m_WorkerPool.OnReleaseWorkers(workerType, workersReleased);
+		m_WorkerPool.AddWorkersToPool(workersRemoved, workerType);
 
-		foreach(IWorker worker in workersReleased) 
+		foreach(IWorker worker in workersRemoved) 
 		{
 			worker.ResetWorkStation();
 		}

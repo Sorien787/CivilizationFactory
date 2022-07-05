@@ -12,6 +12,11 @@ public class ISelectable : IListenerMonoBehaviour<ISelectableListener>, ISelecta
 
 	}
 
+	public GameObject GetGameObject() 
+	{
+		return gameObject;
+	}
+
 	public void OnSelect()
 	{
 
@@ -29,7 +34,10 @@ public interface ISelectableInterface
 
     void OnHovered(in GameObject otherObject);
 
-    void OnUnhovered();
+	GameObject GetGameObject();
+
+
+	void OnUnhovered();
 
     void OnDeselect();
 }

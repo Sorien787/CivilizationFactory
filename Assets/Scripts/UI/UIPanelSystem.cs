@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class UIPanelSystem : IGameSubsystem<IUIPanelListener>
+[CreateAssetMenu(menuName ="UI Panel System")]
+public class UIPanelSystem : IGameSubsystem
 {
 	Dictionary<UIPanelType, UIPanel> m_UIPanels = new Dictionary<UIPanelType, UIPanel>();
 
@@ -59,9 +60,5 @@ public class UIPanelSystem : IGameSubsystem<IUIPanelListener>
 	}
 }
 
-public interface IUIPanelListener : IListenerInterface 
-{
-
-}
 
 

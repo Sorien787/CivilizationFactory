@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public abstract class IGameSubsystem<T> : IListenerScriptableObject<T> where T : IListenerInterface
+public abstract class IGameSubsystem : ScriptableObject
 {
-    public abstract void GameStart();
+    public virtual void GameStart() { }
 
-    public abstract void GameTick();
-    public abstract void GameFinish();
+    public virtual void GameTick() { }
+    public virtual void GameFinish() { }
 }

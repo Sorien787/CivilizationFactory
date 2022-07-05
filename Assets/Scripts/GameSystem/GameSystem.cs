@@ -4,19 +4,27 @@ using UnityEngine;
 
 public class GameSystem : MonoBehaviour
 {
-	[SerializeField] private List<IGameSubsystem<IListenerInterface>> m_GameSubSystems;
+	[SerializeField] private List<IGameSubsystem> m_GameSubSystems = new List<IGameSubsystem>();
 
 	private void Awake()
 	{
-		foreach(IGameSubsystem<IListenerInterface> gameSubsystem in m_GameSubSystems) 
+		foreach (IGameSubsystem gameSubsystem in m_GameSubSystems)
 		{
 			gameSubsystem.GameStart();
 		}
 	}
 
+	private void Update()
+	{
+		foreach (IGameSubsystem gameSubsystem in m_GameSubSystems)
+		{
+			gameSubsystem.GameTick();
+		}
+	}
+
 	private void OnDestroy()
 	{
-		foreach (IGameSubsystem<IListenerInterface> gameSubsystem in m_GameSubSystems)
+		foreach (IGameSubsystem gameSubsystem in m_GameSubSystems)
 		{
 			gameSubsystem.GameFinish();
 		}

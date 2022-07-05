@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-public abstract class IListenerScriptableObject<T> : ScriptableObject where T : IListenerInterface
+public class CListener<T> where T : IListenerInterface
 {
     HashSet<T> m_Listeners = new HashSet<T>();
 
